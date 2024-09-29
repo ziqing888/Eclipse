@@ -20,10 +20,15 @@
         }
 
         h1 {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-weight: 700;
             font-size: 2em; 
             text-align: center;
+        }
+
+        p {
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         form {
@@ -102,12 +107,6 @@
             animation: celebrate 2s ease-in-out;
         }
 
-        @keyframes celebrate {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
         .twitter-link {
             margin-top: 20px;
             text-align: center;
@@ -138,6 +137,8 @@
 </head>
 <body>
     <h1>元数据生成器</h1>
+    <p style="font-size: 18px; font-weight: bold; color: #FF4500;">关注我的推特定期更新教程</p> <!-- 修改的内容 -->
+
     <form id="metadata-form">
         <label for="name">代币名称:</label><br>
         <input type="text" id="name" required><br><br>
@@ -151,7 +152,7 @@
         <label for="pfp">上传图像 (最大 1MB):</label><br>
         <input type="file" id="pfp" accept="image/*" required><br><br>
 
-        <button type="submit">生成元数据</button>
+        <button type="submit">生成元数据 - 关注我的推特定期更新教程</button> <!-- 修改的内容 -->
     </form>
 
     <div id="rounding-buffer"></div>
