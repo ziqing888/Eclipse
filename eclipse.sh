@@ -75,7 +75,7 @@ else
 fi
 
 wallet_path=$(prompt "请输入要保存 Solana 钱包的路径（如 /path-to-wallet/my-wallet.json）：")
-execute_and_prompt "创建 Solana 钱包..." "solana-keygen new -o $wallet_path"
+execute_and_prompt "创建 Solana 钱包..." "solana-keygen new --no-bip39-passphrase -o $wallet_path"
 
 execute_and_prompt "更新 Solana 配置..." "solana config set --url https://testnet.dev2.eclipsenetwork.xyz/ && solana config set --keypair $wallet_path"
 execute_and_prompt "检查 Solana 地址..." "solana address"
@@ -88,7 +88,7 @@ if [ -d "testnet-deposit" ]; then
     execute_and_prompt "删除已存在的 testnet-deposit 文件夹..." "rm -rf testnet-deposit"
 fi
 
-execute_and_prompt "克隆 Eclipse Bridge 脚本..." "git clone https://github.com/Eclipse-Laboratories-Inc/testnet-deposit && cd testnet-deposit && npm install"
+execute_and_prompt "克隆 Eclipse Bridge 脚本..." "git clone https://github.com/Eclipse-Laboratories-Inc/testnet-deposit ~/testnet-deposit && cd ~/testnet-deposit && npm install"
 
 solana_address=$(prompt "请输入您的 Solana 地址：")
 ethereum_private_key=$(prompt_hidden "请输入您的 Ethereum 私钥：")
@@ -106,7 +106,8 @@ gas_limit="3000000"
 gas_price="100000"
 
 for ((i=1; i<=repeat_count; i++)); do
-    execute_and_prompt "运行桥接脚本（第 $i 次）..." "node deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://rpc.sepolia.org"
+    execute_and_prompt "运行桥接脚本（第 $i 次）..." \
+    "node ~/testnet-deposit/src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://rpc.sepolia.org"
 done
 
 execute_and_prompt "检查 Solana 余额..." "solana balance"
@@ -128,4 +129,4 @@ execute_and_prompt "检查代币账户..." "spl-token accounts"
 echo -e "\n提交反馈至：https://docs.google.com/forms/d/e/1FAIpQLSfJQCFBKHpiy2HVw9lTjCj7k0BqNKnP6G1cd0YdKhaPLWD-AA/viewform?pli=1"
 execute_and_prompt "检查程序地址..." "solana address"
 
-echo "程序完成。订阅：https://t.me/HappyCuanAirdrop"
+echo "程序执行完成。"
