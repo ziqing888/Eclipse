@@ -20,6 +20,13 @@ execute_and_prompt() {
 
 # 配置钱包和网络
 wallet_path=$(prompt "请输入现有 Solana 钱包文件路径（如 /root/my-wallet.json）：")
+
+# 验证钱包文件是否存在
+if [ ! -f "$wallet_path" ]; then
+    echo "钱包文件未找到，请检查路径并重试。"
+    exit 1
+fi
+
 solana_address=$(prompt "请输入您的 Solana 地址：")
 ethereum_private_key=$(prompt_hidden "请输入您的 Ethereum 私钥：")
 
