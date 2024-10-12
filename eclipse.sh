@@ -60,7 +60,7 @@ for ((i=1; i<=repeat_count; i++)); do
     echo "Gas 限制: $gas_limit"
     echo "Gas 价格: $gas_price"
     
-    transaction_hash=$(node src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID 2>&1)
+    transaction_hash=$(node src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/92f9682689d945bc806e24718431219c 2>&1)
 
     if [ $? -eq 0 ]; then
         echo "跨链交易成功，交易哈希: $transaction_hash"
