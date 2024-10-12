@@ -1,162 +1,131 @@
 #!/bin/bash
 
-curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/main/logo.sh | bash
-sleep 3
+echo "Eclipse 部署程序 - Happy Cuan Airdrop"
 
-show() {
-    echo -e "\033[1;34m$1\033[0m"
+prompt() {
+    read -p "$1" response
+    echo $response
 }
 
-install_solana() {
-    if ! command -v solana &> /dev/null; then
-        show "未找到 Solana。正在安装 Solana..."
-        sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
-        if ! grep -q 'solana' ~/.bashrc; then
-            echo 'export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"' >> ~/.bashrc
-            show "已将 Solana 添加到 .bashrc 的 PATH 中。请重启终端或运行 'source ~/.bashrc' 以应用更改。"
-        fi
-        export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+prompt_hidden() {
+    read -s -p "$1" response
+    echo $response
+}
+
+select_option() {
+    PS3="$1: "
+    select option in "是" "否"; do
+        case $REPLY in
+            1) return 0 ;;
+            2) return 1 ;;
+            *) echo "无效选项，请选择 1 或 2。" ;;
+        esac
+    done
+}
+
+execute_and_prompt() {
+    echo -e "\n$1"
+    eval "$2"
+    read -p "按 [Enter] 键继续..."
+}
+
+check_command() {
+    if ! command -v "$1" &> /dev/null; then
+        return 1
     else
-        show "Solana 已安装。"
+        return 0
     fi
 }
 
-setup_wallet() {
-    KEYPAIR_DIR="$HOME/solana_keypairs"
-    mkdir -p "$KEYPAIR_DIR"
+cd $HOME
 
-    show "您想使用现有的钱包还是创建一个新钱包？"
-    PS3="请输入您的选择 (1 或 2): "
-    options=("使用现有钱包" "创建新钱包")
-    select opt in "${options[@]}"; do
-        case $opt in
-            "使用现有钱包")
-                show "正在恢复现有钱包..."
-                KEYPAIR_PATH="$KEYPAIR_DIR/eclipse-import.json"
-                solana-keygen recover -o "$KEYPAIR_PATH" --force
-                if [[ $? -ne 0 ]]; then
-                    show "恢复现有钱包失败。正在退出。"
-                    exit 1
-                fi
-                break
-                ;;
-            "创建新钱包")
-                show "正在创建新钱包..."
-                KEYPAIR_PATH="$KEYPAIR_DIR/eclipse-new.json"
-                solana-keygen new -o "$KEYPAIR_PATH" --force
-                if [[ $? -ne 0 ]]; then
-                    show "创建新钱包失败。正在退出。"
-                    exit 1
-                fi
-                break
-                ;;
-            *) show "无效选项。请重试。" ;;
-        esac
-    done
+execute_and_prompt "正在更新系统依赖项..." "sudo apt update && sudo apt upgrade -y"
 
-    solana config set --keypair "$KEYPAIR_PATH"
-
-    show "钱包设置完成！"
-}
-
-setup_network() {
-    show "您想在主网还是测试网部署？"
-    PS3="请输入您的选择 (1 或 2): "
-    network_options=("主网" "测试网")
-    select network_opt in "${network_options[@]}"; do
-        case $network_opt in
-            "主网")
-                show "设置为主网..."
-                NETWORK_URL="https://mainnetbeta-rpc.eclipse.xyz"
-                break
-                ;;
-            "测试网")
-                show "设置为测试网..."
-                NETWORK_URL="https://testnet.dev2.eclipsenetwork.xyz"
-                break
-                ;;
-            *) show "无效选项。请重试。" ;;
-        esac
-    done
-
-    show "正在设置 Solana 配置..."
-    solana config set --url "$NETWORK_URL"
-    
-    show "网络设置完成！"
-}
-
-create_spl_and_operations() {
-    show "正在创建 SPL 令牌..."
-    
-    # 确保在创建令牌之前设置了密钥对
-    if ! solana config get | grep -q "Keypair Path:"; then
-        show "错误：Solana 配置中未设置密钥对。正在退出。"
-        exit 1
+if ! check_command rustc; then
+    if select_option "Rust 未安装，是否现在安装？"; then
+        execute_and_prompt "安装 Rust..." "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        source "$HOME/.cargo/env"
+        execute_and_prompt "检查 Rust 版本..." "rustc --version"
     fi
+else
+    echo "Rust 已安装，跳过安装。"
+fi
 
-    spl-token create-token --enable-metadata -p TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
-    if [[ $? -ne 0 ]]; then
-        show "创建 SPL 令牌失败。正在退出。"
-        exit 1
+if ! check_command solana; then
+    execute_and_prompt "安装 Solana CLI..." 'sh -c "$(curl -sSfL https://release.solana.com/stable/install)"'
+    export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
+    execute_and_prompt "检查 Solana 版本..." "solana --version"
+else
+    echo "Solana CLI 已安装，跳过安装。"
+fi
+
+if ! check_command npm; then
+    execute_and_prompt "安装 npm..." "sudo apt-get install -y npm"
+    execute_and_prompt "检查 npm 版本..." "npm --version"
+else
+    echo "npm 已安装，跳过安装。"
+fi
+
+if ! check_command anchor; then
+    execute_and_prompt "安装 Anchor CLI..." "cargo install --git https://github.com/project-serum/anchor anchor-cli --locked"
+    export PATH="$HOME/.cargo/bin:$PATH"
+    execute_and_prompt "检查 Anchor 版本..." "anchor --version"
+else
+    echo "Anchor CLI 已安装，跳过安装。"
+fi
+
+wallet_path=$(prompt "请输入要保存 Solana 钱包的路径（如 /path-to-wallet/my-wallet.json）：")
+execute_and_prompt "创建 Solana 钱包..." "solana-keygen new -o $wallet_path"
+
+execute_and_prompt "更新 Solana 配置..." "solana config set --url https://testnet.dev2.eclipsenetwork.xyz/ && solana config set --keypair $wallet_path"
+execute_and_prompt "检查 Solana 地址..." "solana address"
+
+echo -e "\n将您的 BIP39 密钥短语导入 OKX、BITGET、METAMASK 或 RABBY，以获取 EVM 地址用于申领 Sepolia 测试网代币。"
+echo -e "请使用以下水龙头链接获取测试 ETH：\nhttps://faucet.quicknode.com/ethereum/sepolia\nhttps://faucets.chain.link/\nhttps://www.infura.io/faucet"
+read -p "按 [Enter] 键继续..."
+
+if [ -d "testnet-deposit" ]; then
+    execute_and_prompt "删除已存在的 testnet-deposit 文件夹..." "rm -rf testnet-deposit"
+fi
+
+execute_and_prompt "克隆 Eclipse Bridge 脚本..." "git clone https://github.com/Eclipse-Laboratories-Inc/testnet-deposit && cd testnet-deposit && npm install"
+
+solana_address=$(prompt "请输入您的 Solana 地址：")
+ethereum_private_key=$(prompt_hidden "请输入您的 Ethereum 私钥：")
+
+while :; do
+    repeat_count=$(prompt "请输入交易重复次数（建议 4-5 次）：")
+    if [[ "$repeat_count" =~ ^[0-9]+$ ]]; then
+        break
+    else
+        echo "请输入有效的数字。"
     fi
+done
 
-    read -p "请输入您找到的令牌地址： " TOKEN_ADDRESS
-    read -p "请输入您的令牌符号（例如 ZUNXBT）： " TOKEN_SYMBOL
-    read -p "请输入您的令牌名称（例如 Zenith Token）： " TOKEN_NAME
-    read -p "请输入您的令牌元数据 URL： " METADATA_URL
+gas_limit="3000000"
+gas_price="100000"
 
-    show "正在初始化令牌元数据..."
-    spl-token initialize-metadata "$TOKEN_ADDRESS" "$TOKEN_NAME" "$TOKEN_SYMBOL" "$METADATA_URL"
-    if [[ $? -ne 0 ]]; then
-        show "初始化令牌元数据失败。正在退出。"
-        exit 1
-    fi
+for ((i=1; i<=repeat_count; i++)); do
+    execute_and_prompt "运行桥接脚本（第 $i 次）..." "node deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://rpc.sepolia.org"
+done
 
-    show "正在创建令牌账户..."
-    spl-token create-account "$TOKEN_ADDRESS"
-    if [[ $? -ne 0 ]]; then
-        show "创建令牌账户失败。正在退出。"
-        exit 1
-    fi
+execute_and_prompt "检查 Solana 余额..." "solana balance"
 
-    show "正在铸造令牌..."
-    spl-token mint "$TOKEN_ADDRESS" 10000
-    if [[ $? -ne 0 ]]; then
-        show "铸造令牌失败。正在退出。"
-        exit 1
-    fi
+balance=$(solana balance | awk '{print $1}')
+if [ "$balance" == "0" ]; then
+    echo "您的 Solana 余额为 0，请充值后重试。"
+    exit 1
+fi
 
-    show "令牌操作成功完成！"
-}
+execute_and_prompt "创建代币..." "spl-token create-token --enable-metadata -p TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 
-main_menu() {
-    while true; do
-        show "选择要执行的部分："
-        PS3="请输入您的选择 (1, 2, 3, 4 或 5): "
-        options=("安装" "钱包设置" "网络设置" "创建 SPL 令牌和操作" "退出")
-        select opt in "${options[@]}"; do
-            case $opt in
-                "安装")
-                    install_solana
-                    ;;
-                "钱包设置")
-                    setup_wallet
-                    ;;
-                "网络设置")
-                    setup_network
-                    ;;
-                "创建 SPL 令牌和操作")
-                    create_spl_and_operations
-                    ;;
-                "退出")
-                    show "正在退出脚本。"
-                    exit 0
-                    ;;
-                *) show "无效选项。请重试。" ;;
-            esac
-            break
-        done
-    done
-}
+token_address=$(prompt "请输入您的代币地址：")
+execute_and_prompt "创建代币账户..." "spl-token create-account $token_address"
 
-main_menu
+execute_and_prompt "铸造代币..." "spl-token mint $token_address 10000"
+execute_and_prompt "检查代币账户..." "spl-token accounts"
+
+echo -e "\n提交反馈至：https://docs.google.com/forms/d/e/1FAIpQLSfJQCFBKHpiy2HVw9lTjCj7k0BqNKnP6G1cd0YdKhaPLWD-AA/viewform?pli=1"
+execute_and_prompt "检查程序地址..." "solana address"
+
+echo "程序完成。订阅：https://t.me/HappyCuanAirdrop"
