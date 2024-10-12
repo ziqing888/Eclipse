@@ -14,10 +14,10 @@ prompt_hidden() {
 
 select_option() {
     PS3="$1: "
-    select option in "是" "否"; do
+    select option in "使用现有钱包" "创建新钱包"; do
         case $REPLY in
-            1) return 0 ;;
-            2) return 1 ;;
+            1) return 0 ;;  # 使用现有钱包
+            2) return 1 ;;  # 创建新钱包
             *) echo "无效选项，请选择 1 或 2。" ;;
         esac
     done
@@ -74,11 +74,17 @@ else
     echo "Anchor CLI 已安装，跳过安装。"
 fi
 
-wallet_path=$(prompt "请输入要保存 Solana 钱包的路径（如 /path-to-wallet/my-wallet.json）：")
-execute_and_prompt "创建 Solana 钱包..." "solana-keygen new --no-bip39-passphrase -o $wallet_path"
+# 钱包配置部分
+if select_option "您想使用现有钱包还是创建新钱包？"; then
+    wallet_path=$(prompt "请输入要保存新钱包的路径（如 /root/my-wallet.json）：")
+    execute_and_prompt "创建 Solana 钱包..." "solana-keygen new --no-bip39-passphrase -o $wallet_path"
+else
+    wallet_path=$(prompt "请输入现有钱包文件的路径（如 /root/my-wallet.json）：")
+fi
 
-execute_and_prompt "更新 Solana 配置..." "solana config set --url https://testnet.dev2.eclipsenetwork.xyz/ && solana config set --keypair $wallet_path"
-execute_and_prompt "检查 Solana 地址..." "solana address"
+# 设置 Solana 配置
+execute_and_prompt "更新 Solana 配置..." "solana config set --keypair $wallet_path && solana config set --url https://testnet.dev2.eclipsenetwork.xyz"
+execute_and_prompt "检查 Solana 地址..." "solana address --keypair $wallet_path"
 
 echo -e "\n将您的 BIP39 密钥短语导入 OKX、BITGET、METAMASK 或 RABBY，以获取 EVM 地址用于申领 Sepolia 测试网代币。"
 echo -e "请使用以下水龙头链接获取测试 ETH：\nhttps://faucet.quicknode.com/ethereum/sepolia\nhttps://faucets.chain.link/\nhttps://www.infura.io/faucet"
@@ -110,9 +116,9 @@ for ((i=1; i<=repeat_count; i++)); do
     "node ~/testnet-deposit/src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://rpc.sepolia.org"
 done
 
-execute_and_prompt "检查 Solana 余额..." "solana balance"
+execute_and_prompt "检查 Solana 余额..." "solana balance --keypair $wallet_path"
 
-balance=$(solana balance | awk '{print $1}')
+balance=$(solana balance --keypair $wallet_path | awk '{print $1}')
 if [ "$balance" == "0" ]; then
     echo "您的 Solana 余额为 0，请充值后重试。"
     exit 1
@@ -127,6 +133,6 @@ execute_and_prompt "铸造代币..." "spl-token mint $token_address 10000"
 execute_and_prompt "检查代币账户..." "spl-token accounts"
 
 echo -e "\n提交反馈至：https://docs.google.com/forms/d/e/1FAIpQLSfJQCFBKHpiy2HVw9lTjCj7k0BqNKnP6G1cd0YdKhaPLWD-AA/viewform?pli=1"
-execute_and_prompt "检查程序地址..." "solana address"
+execute_and_prompt "检查程序地址..." "solana address --keypair $wallet_path"
 
 echo "程序执行完成。"
