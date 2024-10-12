@@ -1,5 +1,8 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/ziqing888/logo.sh/main/logo.sh | bash
+sleep 3
+
 show() {
     echo -e "\033[1;34m$1\033[0m"
 }
@@ -18,18 +21,9 @@ install_solana() {
     fi
 }
 
-recover_wallet() {
-    local keypair_path="$1"
-    solana-keygen recover -o "$keypair_path" --force
-    if [[ $? -ne 0 ]]; then
-        show "恢复现有钱包失败。正在退出。"
-        exit 1
-    fi
-}
-
 setup_wallet() {
-    local keypair_dir="$HOME/solana_keypairs"
-    mkdir -p "$keypair_dir"
+    KEYPAIR_DIR="$HOME/solana_keypairs"
+    mkdir -p "$KEYPAIR_DIR"
 
     show "您想使用现有的钱包还是创建一个新钱包？"
     PS3="请输入您的选择 (1 或 2): "
@@ -38,22 +32,30 @@ setup_wallet() {
         case $opt in
             "使用现有钱包")
                 show "正在恢复现有钱包..."
-                recover_wallet "$keypair_dir/eclipse-import.json"
+                KEYPAIR_PATH="$KEYPAIR_DIR/eclipse-import.json"
+                solana-keygen recover -o "$KEYPAIR_PATH" --force
+                if [[ $? -ne 0 ]]; then
+                    show "恢复现有钱包失败。正在退出。"
+                    exit 1
+                fi
                 break
                 ;;
             "创建新钱包")
                 show "正在创建新钱包..."
-                solana-keygen new -o "$keypair_dir/eclipse-new.json" --force || {
+                KEYPAIR_PATH="$KEYPAIR_DIR/eclipse-new.json"
+                solana-keygen new -o "$KEYPAIR_PATH" --force
+                if [[ $? -ne 0 ]]; then
                     show "创建新钱包失败。正在退出。"
                     exit 1
-                }
+                fi
                 break
                 ;;
             *) show "无效选项。请重试。" ;;
         esac
     done
 
-    solana config set --keypair "$keypair_dir/eclipse-new.json"
+    solana config set --keypair "$KEYPAIR_PATH"
+
     show "钱包设置完成！"
 }
 
@@ -64,32 +66,39 @@ setup_network() {
     select network_opt in "${network_options[@]}"; do
         case $network_opt in
             "主网")
+                show "设置为主网..."
                 NETWORK_URL="https://mainnetbeta-rpc.eclipse.xyz"
+                break
                 ;;
             "测试网")
+                show "设置为测试网..."
                 NETWORK_URL="https://testnet.dev2.eclipsenetwork.xyz"
+                break
                 ;;
-            *) show "无效选项。请重试。" && continue ;;
+            *) show "无效选项。请重试。" ;;
         esac
-        break
     done
 
+    show "正在设置 Solana 配置..."
     solana config set --url "$NETWORK_URL"
+    
     show "网络设置完成！"
 }
 
 create_spl_and_operations() {
     show "正在创建 SPL 令牌..."
-
+    
+    # 确保在创建令牌之前设置了密钥对
     if ! solana config get | grep -q "Keypair Path:"; then
         show "错误：Solana 配置中未设置密钥对。正在退出。"
         exit 1
     fi
 
-    spl-token create-token --enable-metadata -p TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb || {
+    spl-token create-token --enable-metadata -p TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
+    if [[ $? -ne 0 ]]; then
         show "创建 SPL 令牌失败。正在退出。"
         exit 1
-    }
+    fi
 
     read -p "请输入您找到的令牌地址： " TOKEN_ADDRESS
     read -p "请输入您的令牌符号（例如 ZUNXBT）： " TOKEN_SYMBOL
@@ -97,22 +106,25 @@ create_spl_and_operations() {
     read -p "请输入您的令牌元数据 URL： " METADATA_URL
 
     show "正在初始化令牌元数据..."
-    spl-token initialize-metadata "$TOKEN_ADDRESS" "$TOKEN_NAME" "$TOKEN_SYMBOL" "$METADATA_URL" || {
+    spl-token initialize-metadata "$TOKEN_ADDRESS" "$TOKEN_NAME" "$TOKEN_SYMBOL" "$METADATA_URL"
+    if [[ $? -ne 0 ]]; then
         show "初始化令牌元数据失败。正在退出。"
         exit 1
-    }
+    fi
 
     show "正在创建令牌账户..."
-    spl-token create-account "$TOKEN_ADDRESS" || {
+    spl-token create-account "$TOKEN_ADDRESS"
+    if [[ $? -ne 0 ]]; then
         show "创建令牌账户失败。正在退出。"
         exit 1
-    }
+    fi
 
     show "正在铸造令牌..."
-    spl-token mint "$TOKEN_ADDRESS" 10000 || {
+    spl-token mint "$TOKEN_ADDRESS" 10000
+    if [[ $? -ne 0 ]]; then
         show "铸造令牌失败。正在退出。"
         exit 1
-    }
+    fi
 
     show "令牌操作成功完成！"
 }
@@ -124,11 +136,22 @@ main_menu() {
         options=("安装" "钱包设置" "网络设置" "创建 SPL 令牌和操作" "退出")
         select opt in "${options[@]}"; do
             case $opt in
-                "安装") install_solana ;;
-                "钱包设置") setup_wallet ;;
-                "网络设置") setup_network ;;
-                "创建 SPL 令牌和操作") create_spl_and_operations ;;
-                "退出") show "正在退出脚本。" && exit 0 ;;
+                "安装")
+                    install_solana
+                    ;;
+                "钱包设置")
+                    setup_wallet
+                    ;;
+                "网络设置")
+                    setup_network
+                    ;;
+                "创建 SPL 令牌和操作")
+                    create_spl_and_operations
+                    ;;
+                "退出")
+                    show "正在退出脚本。"
+                    exit 0
+                    ;;
                 *) show "无效选项。请重试。" ;;
             esac
             break
