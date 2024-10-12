@@ -54,13 +54,19 @@ execute_and_prompt "检查并安装依赖项..." "npm install --legacy-peer-deps
 # 跨链交易循环
 for ((i=1; i<=repeat_count; i++)); do
     echo "执行跨链交易（第 $i 次）..."
+    echo "调用参数:"
+    echo "Solana 地址: $solana_address"
+    echo "EVM 地址: 0x7C9e161ebe55000a3220F972058Fb83273653a6e"
+    echo "Gas 限制: $gas_limit"
+    echo "Gas 价格: $gas_price"
     
-    transaction_hash=$(node src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID)
+    transaction_hash=$(node src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID 2>&1)
 
     if [ $? -eq 0 ]; then
         echo "跨链交易成功，交易哈希: $transaction_hash"
     else
         echo "跨链交易失败，请检查错误信息。"
+        echo "错误输出: $transaction_hash"
     fi
 done
 
