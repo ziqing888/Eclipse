@@ -12,17 +12,6 @@ prompt_hidden() {
     echo $response
 }
 
-select_option() {
-    PS3="$1: "
-    select option in "使用现有钱包" "创建新钱包"; do
-        case $REPLY in
-            1) return 0 ;;  # 使用现有钱包
-            2) return 1 ;;  # 创建新钱包
-            *) echo "无效选项，请选择 1 或 2。" ;;
-        esac
-    done
-}
-
 execute_and_prompt() {
     echo -e "\n$1"
     eval "$2"
@@ -42,11 +31,9 @@ cd $HOME
 execute_and_prompt "正在更新系统依赖项..." "sudo apt update && sudo apt upgrade -y"
 
 if ! check_command rustc; then
-    if select_option "Rust 未安装，是否现在安装？"; then
-        execute_and_prompt "安装 Rust..." "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-        source "$HOME/.cargo/env"
-        execute_and_prompt "检查 Rust 版本..." "rustc --version"
-    fi
+    execute_and_prompt "安装 Rust..." "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    source "$HOME/.cargo/env"
+    execute_and_prompt "检查 Rust 版本..." "rustc --version"
 else
     echo "Rust 已安装，跳过安装。"
 fi
@@ -74,15 +61,10 @@ else
     echo "Anchor CLI 已安装，跳过安装。"
 fi
 
-# 钱包配置部分
-if select_option "您想使用现有钱包还是创建新钱包？"; then
-    wallet_path=$(prompt "请输入要保存新钱包的路径（如 /root/my-wallet.json）：")
-    execute_and_prompt "创建 Solana 钱包..." "solana-keygen new --no-bip39-passphrase -o $wallet_path"
-else
-    wallet_path=$(prompt "请输入现有钱包文件的路径（如 /root/my-wallet.json）：")
-fi
+# 使用现有钱包地址
+wallet_path=$(prompt "请输入现有钱包文件的路径（如 /root/my-wallet.json）：")
 
-# 设置 Solana 配置
+# 设置 Solana CLI 使用现有钱包文件
 execute_and_prompt "更新 Solana 配置..." "solana config set --keypair $wallet_path && solana config set --url https://testnet.dev2.eclipsenetwork.xyz"
 execute_and_prompt "检查 Solana 地址..." "solana address --keypair $wallet_path"
 
@@ -136,3 +118,4 @@ echo -e "\n提交反馈至：https://docs.google.com/forms/d/e/1FAIpQLSfJQCFBKHp
 execute_and_prompt "检查程序地址..." "solana address --keypair $wallet_path"
 
 echo "程序执行完成。"
+
