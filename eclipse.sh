@@ -48,13 +48,20 @@ else
     cd testnet-deposit
 fi
 
-# 确保依赖项安装正确
+# 确保依赖项安装成功
 execute_and_prompt "检查并安装依赖项..." "npm install --legacy-peer-deps"
 
 # 跨链交易循环
 for ((i=1; i<=repeat_count; i++)); do
-    execute_and_prompt "执行跨链交易（第 $i 次）..." \
-    "node src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
+    echo "执行跨链交易（第 $i 次）..."
+    
+    transaction_hash=$(node src/deposit.js $solana_address 0x7C9e161ebe55000a3220F972058Fb83273653a6e $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID)
+
+    if [ $? -eq 0 ]; then
+        echo "跨链交易成功，交易哈希: $transaction_hash"
+    else
+        echo "跨链交易失败，请检查错误信息。"
+    fi
 done
 
 # 检查 Solana 余额
