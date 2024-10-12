@@ -29,6 +29,7 @@ fi
 
 solana_address=$(prompt "请输入您的 Solana 地址：")
 ethereum_private_key=$(prompt_hidden "请输入您的 Ethereum 私钥：")
+evm_address=$(prompt "请输入您的 EVM 地址（以太坊地址）：") # 让用户输入 EVM 地址
 
 # 设置 Solana CLI 为主网
 execute_and_prompt "更新 Solana 配置..." \
@@ -56,11 +57,11 @@ for ((i=1; i<=repeat_count; i++)); do
     echo "执行跨链交易（第 $i 次）..."
     echo "调用参数:"
     echo "Solana 地址: $solana_address"
-    echo "EVM 地址: 8CsWQ9s8mFYZR6w6sAQqwbKF33cDzfsE3AQ4SaCypuru"
+    echo "EVM 地址: $evm_address"
     echo "Gas 限制: $gas_limit"
     echo "Gas 价格: $gas_price"
     
-    transaction_hash=$(node src/deposit.js $solana_address 8CsWQ9s8mFYZR6w6sAQqwbKF33cDzfsE3AQ4SaCypuru $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/92f9682689d945bc806e24718431219c 2>&1)
+    transaction_hash=$(node src/deposit.js $solana_address $evm_address $gas_limit $gas_price ${ethereum_private_key:2} https://mainnet.infura.io/v3/92f9682689d945bc806e24718431219c 2>&1)
 
     if [ $? -eq 0 ]; then
         echo "跨链交易成功，交易哈希: $transaction_hash"
