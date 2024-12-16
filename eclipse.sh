@@ -101,8 +101,8 @@ create_spl_and_operations() {
     fi
 
     read -p "请输入您找到的令牌地址： " TOKEN_ADDRESS
-    read -p "请输入您的令牌符号（例如 ZUNXBT）： " TOKEN_SYMBOL
-    read -p "请输入您的令牌名称（例如 Zenith Token）： " TOKEN_NAME
+    read -p "请输入您的令牌符号（例如 zq）： " TOKEN_SYMBOL
+    read -p "请输入您的令牌名称（例如 zqToken）： " TOKEN_NAME
     read -p "请输入您的令牌元数据 URL： " METADATA_URL
 
     show "正在初始化令牌元数据..."
